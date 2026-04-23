@@ -163,19 +163,22 @@ function EditText({value,onChange,x,y,w,h,fs=12,fill="#fff",bold=false,center=fa
   const [draft,setDraft]=useState(value);
   useEffect(()=>{setDraft(value);},[value]);
   const commit=()=>{setEditing(false);if(draft!==value)onChange(draft);};
+  // Always centre: cx = x + w/2, cy = y + h/2
+  const cx=x+w/2, cy=y+h/2;
   if(editing)return(
-    <foreignObject x={x} y={y} width={w} height={h+6} style={{overflow:"visible"}}>
+    <foreignObject x={x} y={cy-fs*0.9} width={w} height={fs*1.8} style={{overflow:"visible"}}>
       <input autoFocus value={draft}
         onChange={e=>setDraft(e.target.value)} onBlur={commit}
         onKeyDown={e=>{if(e.key==="Enter")commit();if(e.key==="Escape"){setEditing(false);setDraft(value);}}}
         onClick={e=>e.stopPropagation()} onMouseDown={e=>e.stopPropagation()}
         style={{width:"100%",background:"rgba(10,22,50,0.95)",border:"1px solid #d4a843",
           color:"#fff",fontFamily:"'Caveat',cursive",fontSize:fs,fontWeight:bold?"700":"400",
-          textAlign:center?"center":"left",borderRadius:3,padding:"0 4px",outline:"none",boxSizing:"border-box"}}/>
+          textAlign:"center",borderRadius:3,padding:"0 4px",outline:"none",boxSizing:"border-box",
+          lineHeight:"1.6"}}/>
     </foreignObject>
   );
   return(
-    <text x={center?x+w/2:x+4} y={y+h*0.76} textAnchor={center?"middle":"start"} fill={fill}
+    <text x={cx} y={cy} textAnchor="middle" dominantBaseline="central" fill={fill}
       style={{fontFamily:"'Caveat',cursive",fontSize:fs,fontWeight:bold?"700":"400",cursor:"text",userSelect:"none"}}
       onDoubleClick={e=>{e.stopPropagation();setEditing(true);}}
       onMouseDown={e=>e.stopPropagation()}>
@@ -231,7 +234,7 @@ function SkillBox({skill,type,mx,my,ox,oy,branchId,memberId,skillIdx,onCommitMov
           {ICONS[skill.icon]||"•"}
         </text>}
         {showPills&&<rect x={sx+SW/2-34} y={sy-SH/2+1} width={33} height={11} rx={3} fill={pillCol}/>}
-        {showPills&&<text x={sx+SW/2-17} y={sy-SH/2+9} textAnchor="middle"
+        {showPills&&<text x={sx+SW/2-17} y={sy-SH/2+6} textAnchor="middle" dominantBaseline="central"
           style={{fontFamily:"'Caveat',cursive",fontSize:8,fill:pillTextCol,userSelect:"none",pointerEvents:"none"}}>
           {pillText}
         </text>}
@@ -269,7 +272,7 @@ function MemberNode({member,bx,by,branchId,onCommitMove,onCommitSkillMove,onUpda
       <g onMouseDown={printMode?null:onMouseDown} style={{cursor:printMode?"default":"grab"}}>
         <rect x={mx-MW/2} y={my-MH/2} width={MW} height={MH} rx={4}
           fill={T.memberFill} stroke={T.memberStroke} strokeWidth={1}/>
-        <EditText value={member.name} x={mx-MW/2+3} y={my-MH/2} w={MW-22} h={MH}
+        <EditText value={member.name} x={mx-MW/2} y={my-MH/2} w={printMode?MW:MW-18} h={MH}
           fs={12} bold fill={T.textMember} onChange={v=>onUpdate(branchId,member.id,"name",v)}/>
         {!printMode&&(
           <text x={mx+MW/2-9} y={my+5} textAnchor="middle" fill="rgba(255,80,80,0.75)"
@@ -313,8 +316,8 @@ function BranchNode({branch,initPos,onCommitBranchMove,onCommitMemberMove,onComm
           fill={T.branchFill} stroke={T.branchStroke} strokeWidth={2}
           style={{filter:`drop-shadow(0 0 7px ${T.shadow}0.28))`}}/>
         {lines.map((l,i)=>(
-          <EditText key={i} value={l} x={bx-BW/2+4} y={by-BH/2+i*(BH/lines.length)}
-            w={BW-18} h={BH/lines.length} fs={12} bold fill={T.textAccent} center
+          <EditText key={i} value={l} x={bx-BW/2} y={by-BH/2+i*(BH/lines.length)}
+            w={printMode?BW:BW-18} h={BH/lines.length} fs={12} bold fill={T.textAccent} center
             onChange={v=>{const nl=[...lines];nl[i]=v;onUpdateBranchLabel(branch.id,nl.join("\n"));}}/>
         ))}
         {!printMode&&(
@@ -350,9 +353,9 @@ function CentreCircle({c,onUpdate,T}){
     <g>
       <circle cx={cx} cy={cy} r={CR} fill={T.circleFill} stroke={T.circleStroke} strokeWidth={2.2}
         style={{filter:`drop-shadow(0 0 14px ${T.shadow}0.18))`}}/>
-      <EditText value={l1} x={cx-CR+10} y={cy-(l2?18:9)} w={(CR-10)*2} h={18}
+      <EditText value={l1} x={cx-CR+8} y={l2?cy-18:cy-9} w={(CR-8)*2} h={18}
         fs={12} bold fill={T.textAccent} center onChange={v=>onUpdate(c.id,v+(l2?" "+l2:""))}/>
-      {l2&&<EditText value={l2} x={cx-CR+10} y={cy+1} w={(CR-10)*2} h={18}
+      {l2&&<EditText value={l2} x={cx-CR+8} y={cy+1} w={(CR-8)*2} h={18}
         fs={12} bold fill={T.textAccent} center onChange={v=>onUpdate(c.id,l1+" "+v)}/>}
     </g>
   );
@@ -881,19 +884,22 @@ function EditText({value,onChange,x,y,w,h,fs=12,fill="#fff",bold=false,center=fa
   const [draft,setDraft]=useState(value);
   useEffect(()=>{setDraft(value);},[value]);
   const commit=()=>{setEditing(false);if(draft!==value)onChange(draft);};
+  // Always centre: cx = x + w/2, cy = y + h/2
+  const cx=x+w/2, cy=y+h/2;
   if(editing)return(
-    <foreignObject x={x} y={y} width={w} height={h+6} style={{overflow:"visible"}}>
+    <foreignObject x={x} y={cy-fs*0.9} width={w} height={fs*1.8} style={{overflow:"visible"}}>
       <input autoFocus value={draft}
         onChange={e=>setDraft(e.target.value)} onBlur={commit}
         onKeyDown={e=>{if(e.key==="Enter")commit();if(e.key==="Escape"){setEditing(false);setDraft(value);}}}
         onClick={e=>e.stopPropagation()} onMouseDown={e=>e.stopPropagation()}
         style={{width:"100%",background:"rgba(10,22,50,0.95)",border:"1px solid #d4a843",
           color:"#fff",fontFamily:"'Caveat',cursive",fontSize:fs,fontWeight:bold?"700":"400",
-          textAlign:center?"center":"left",borderRadius:3,padding:"0 4px",outline:"none",boxSizing:"border-box"}}/>
+          textAlign:"center",borderRadius:3,padding:"0 4px",outline:"none",boxSizing:"border-box",
+          lineHeight:"1.6"}}/>
     </foreignObject>
   );
   return(
-    <text x={center?x+w/2:x+4} y={y+h*0.76} textAnchor={center?"middle":"start"} fill={fill}
+    <text x={cx} y={cy} textAnchor="middle" dominantBaseline="central" fill={fill}
       style={{fontFamily:"'Caveat',cursive",fontSize:fs,fontWeight:bold?"700":"400",cursor:"text",userSelect:"none"}}
       onDoubleClick={e=>{e.stopPropagation();setEditing(true);}}
       onMouseDown={e=>e.stopPropagation()}>
@@ -949,7 +955,7 @@ function SkillBox({skill,type,mx,my,ox,oy,branchId,memberId,skillIdx,onCommitMov
           {ICONS[skill.icon]||"•"}
         </text>}
         {showPills&&<rect x={sx+SW/2-34} y={sy-SH/2+1} width={33} height={11} rx={3} fill={pillCol}/>}
-        {showPills&&<text x={sx+SW/2-17} y={sy-SH/2+9} textAnchor="middle"
+        {showPills&&<text x={sx+SW/2-17} y={sy-SH/2+6} textAnchor="middle" dominantBaseline="central"
           style={{fontFamily:"'Caveat',cursive",fontSize:8,fill:pillTextCol,userSelect:"none",pointerEvents:"none"}}>
           {pillText}
         </text>}
@@ -987,7 +993,7 @@ function MemberNode({member,bx,by,branchId,onCommitMove,onCommitSkillMove,onUpda
       <g onMouseDown={printMode?null:onMouseDown} style={{cursor:printMode?"default":"grab"}}>
         <rect x={mx-MW/2} y={my-MH/2} width={MW} height={MH} rx={4}
           fill={T.memberFill} stroke={T.memberStroke} strokeWidth={1}/>
-        <EditText value={member.name} x={mx-MW/2+3} y={my-MH/2} w={MW-22} h={MH}
+        <EditText value={member.name} x={mx-MW/2} y={my-MH/2} w={printMode?MW:MW-18} h={MH}
           fs={12} bold fill={T.textMember} onChange={v=>onUpdate(branchId,member.id,"name",v)}/>
         {!printMode&&(
           <text x={mx+MW/2-9} y={my+5} textAnchor="middle" fill="rgba(255,80,80,0.75)"
@@ -1031,8 +1037,8 @@ function BranchNode({branch,initPos,onCommitBranchMove,onCommitMemberMove,onComm
           fill={T.branchFill} stroke={T.branchStroke} strokeWidth={2}
           style={{filter:`drop-shadow(0 0 7px ${T.shadow}0.28))`}}/>
         {lines.map((l,i)=>(
-          <EditText key={i} value={l} x={bx-BW/2+4} y={by-BH/2+i*(BH/lines.length)}
-            w={BW-18} h={BH/lines.length} fs={12} bold fill={T.textAccent} center
+          <EditText key={i} value={l} x={bx-BW/2} y={by-BH/2+i*(BH/lines.length)}
+            w={printMode?BW:BW-18} h={BH/lines.length} fs={12} bold fill={T.textAccent} center
             onChange={v=>{const nl=[...lines];nl[i]=v;onUpdateBranchLabel(branch.id,nl.join("\n"));}}/>
         ))}
         {!printMode&&(
@@ -1068,9 +1074,9 @@ function CentreCircle({c,onUpdate,T}){
     <g>
       <circle cx={cx} cy={cy} r={CR} fill={T.circleFill} stroke={T.circleStroke} strokeWidth={2.2}
         style={{filter:`drop-shadow(0 0 14px ${T.shadow}0.18))`}}/>
-      <EditText value={l1} x={cx-CR+10} y={cy-(l2?18:9)} w={(CR-10)*2} h={18}
+      <EditText value={l1} x={cx-CR+8} y={l2?cy-18:cy-9} w={(CR-8)*2} h={18}
         fs={12} bold fill={T.textAccent} center onChange={v=>onUpdate(c.id,v+(l2?" "+l2:""))}/>
-      {l2&&<EditText value={l2} x={cx-CR+10} y={cy+1} w={(CR-10)*2} h={18}
+      {l2&&<EditText value={l2} x={cx-CR+8} y={cy+1} w={(CR-8)*2} h={18}
         fs={12} bold fill={T.textAccent} center onChange={v=>onUpdate(c.id,l1+" "+v)}/>}
     </g>
   );
