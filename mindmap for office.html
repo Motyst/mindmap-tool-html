@@ -103,7 +103,7 @@ const THEMES = [
 ];
 
 const ICON_LIST = [
-  {key:"building",e:"🏢"},{key:"raft",e:"🛶"},{key:"map",e:"🗺️"},{key:"golf",e:"⛳"},
+  {key:"building",e:"🏢"},{key:"raft",e:"🛶"},{key:"boat",e:"⛵"},{key:"map",e:"🗺️"},{key:"golf",e:"⛳"},
   {key:"handshake",e:"🤝"},{key:"boxing",e:"🥊"},{key:"gavel",e:"⚖️"},{key:"swimmer",e:"🏊"},
   {key:"shop",e:"🏪"},{key:"book",e:"📚"},{key:"crane",e:"🏗️"},{key:"dice",e:"🎲"},
   {key:"pen",e:"✒️"},{key:"dancer",e:"💃"},{key:"document",e:"📋"},{key:"guitar",e:"🎸"},
@@ -599,7 +599,7 @@ function MindMap(){
       a.download='mindmap-saved.html';
       a.click();
     }catch(err){alert('Save failed: '+err.message);}
-  },[branches,positions,center,themeIdx]);
+  },[branches,positions,center,themeIdx,showEmoji,showPills,skillLabel,hobbyLabel]);
 
   const W=window.innerWidth,H=window.innerHeight;
   const tx=pan.x+W/2-CX*zoom,ty=pan.y+H/2-CY*zoom;
@@ -828,7 +828,7 @@ const THEMES = [
 ];
 
 const ICON_LIST = [
-  {key:"building",e:"🏢"},{key:"raft",e:"🛶"},{key:"map",e:"🗺️"},{key:"golf",e:"⛳"},
+  {key:"building",e:"🏢"},{key:"raft",e:"🛶"},{key:"boat",e:"⛵"},{key:"map",e:"🗺️"},{key:"golf",e:"⛳"},
   {key:"handshake",e:"🤝"},{key:"boxing",e:"🥊"},{key:"gavel",e:"⚖️"},{key:"swimmer",e:"🏊"},
   {key:"shop",e:"🏪"},{key:"book",e:"📚"},{key:"crane",e:"🏗️"},{key:"dice",e:"🎲"},
   {key:"pen",e:"✒️"},{key:"dancer",e:"💃"},{key:"document",e:"📋"},{key:"guitar",e:"🎸"},
@@ -1324,7 +1324,7 @@ function MindMap(){
       a.download='mindmap-saved.html';
       a.click();
     }catch(err){alert('Save failed: '+err.message);}
-  },[branches,positions,center,themeIdx]);
+  },[branches,positions,center,themeIdx,showEmoji,showPills,skillLabel,hobbyLabel]);
 
   const W=window.innerWidth,H=window.innerHeight;
   const tx=pan.x+W/2-CX*zoom,ty=pan.y+H/2-CY*zoom;
