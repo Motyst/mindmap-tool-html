@@ -530,17 +530,21 @@ function MindMap(){
 
   const exportSVG=useCallback(async()=>{
     setExporting(true);
+    setPrintMode(true);
+    await new Promise(r=>setTimeout(r,80));
     try{
       const{minX,minY,w,h}=getContentBounds();
       const svgStr=new XMLSerializer().serializeToString(buildExportClone(w,h,minX,minY));
       const a=document.createElement("a");
       a.href=URL.createObjectURL(new Blob([svgStr],{type:"image/svg+xml"}));
       a.download="mindmap.svg";a.click();
-    }finally{setExporting(false);}
+    }finally{setExporting(false);setPrintMode(false);}
   },[getContentBounds,buildExportClone]);
 
   const exportPNG=useCallback(async()=>{
     setExporting(true);
+    setPrintMode(true);
+    await new Promise(r=>setTimeout(r,80));
     try{
       const{minX,minY,w,h}=getContentBounds();
       const SCALE=3,clone=buildExportClone(w,h,minX,minY,w*SCALE,h*SCALE);
@@ -560,7 +564,7 @@ function MindMap(){
         };
         img.onerror=reject;img.src=svgUrl;
       });
-    }finally{setExporting(false);}
+    }finally{setExporting(false);setPrintMode(false);}
   },[getContentBounds,buildExportClone,T.bg]);
 
   const saveHTML=useCallback(()=>{
@@ -1251,17 +1255,21 @@ function MindMap(){
 
   const exportSVG=useCallback(async()=>{
     setExporting(true);
+    setPrintMode(true);
+    await new Promise(r=>setTimeout(r,80));
     try{
       const{minX,minY,w,h}=getContentBounds();
       const svgStr=new XMLSerializer().serializeToString(buildExportClone(w,h,minX,minY));
       const a=document.createElement("a");
       a.href=URL.createObjectURL(new Blob([svgStr],{type:"image/svg+xml"}));
       a.download="mindmap.svg";a.click();
-    }finally{setExporting(false);}
+    }finally{setExporting(false);setPrintMode(false);}
   },[getContentBounds,buildExportClone]);
 
   const exportPNG=useCallback(async()=>{
     setExporting(true);
+    setPrintMode(true);
+    await new Promise(r=>setTimeout(r,80));
     try{
       const{minX,minY,w,h}=getContentBounds();
       const SCALE=3,clone=buildExportClone(w,h,minX,minY,w*SCALE,h*SCALE);
@@ -1281,7 +1289,7 @@ function MindMap(){
         };
         img.onerror=reject;img.src=svgUrl;
       });
-    }finally{setExporting(false);}
+    }finally{setExporting(false);setPrintMode(false);}
   },[getContentBounds,buildExportClone,T.bg]);
 
   const saveHTML=useCallback(()=>{
