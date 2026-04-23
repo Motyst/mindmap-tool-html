@@ -1,5 +1,6 @@
 <!DOCTYPE html>
-<html lang="en"><head>
+<html lang="en">
+<head>
 <meta charset="UTF-8"/>
 <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
 <title>Team Mind Map</title>
@@ -7,10 +8,15 @@
 <script src="https://cdnjs.cloudflare.com/ajax/libs/react/18.2.0/umd/react.production.min.js"></script>
 <script src="https://cdnjs.cloudflare.com/ajax/libs/react-dom/18.2.0/umd/react-dom.production.min.js"></script>
 <script src="https://cdnjs.cloudflare.com/ajax/libs/babel-standalone/7.23.2/babel.min.js"></script>
-<style>*{margin:0;padding:0;box-sizing:border-box;}body{width:100vw;height:100vh;overflow:hidden;background:#0d1b38;font-family:'Caveat',cursive;}</style>
-</head><body>
+<style>
+  * { margin:0; padding:0; box-sizing:border-box; }
+  body { width:100vw; height:100vh; overflow:hidden; background:#0d1b38; font-family:'Caveat',cursive; }
+</style>
+</head>
+<body>
 <div id="root"></div>
 <script id="app-source" type="text/x-app-source">
+
 const { useState, useRef, useCallback, useEffect } = React;
 
 const THEMES = [
@@ -201,7 +207,7 @@ function IconPicker({x,y,onPick,onClose}){
   );
 }
 
-function SkillBox({skill,type,mx,my,ox,oy,branchId,memberId,skillIdx,onCommitMove,onUpdate,zoomRef,T,printMode}){
+function SkillBox({skill,type,mx,my,ox,oy,branchId,memberId,skillIdx,onCommitMove,onUpdate,zoomRef,T,printMode,showEmoji,showPills,skillLabel,hobbyLabel}){
   const [pickerOpen,setPickerOpen]=useState(false);
   const commit=useCallback((nx,ny)=>onCommitMove(branchId,memberId,skillIdx,nx-mx,ny-my),[mx,my,branchId,memberId,skillIdx,onCommitMove]);
   const {x:sx,y:sy,onMouseDown}=useDrag(mx+ox,my+oy,commit,zoomRef);
@@ -212,24 +218,25 @@ function SkillBox({skill,type,mx,my,ox,oy,branchId,memberId,skillIdx,onCommitMov
   const lineCol=isHobby?T.lineHobby:T.lineSkill;
   const labelCol=isHobby?T.textHobby:T.textSkill;
   const pillCol=isHobby?T.pillHobby:T.pillSkill;
-  const pillText=isHobby?"HOBBY":"SKILL";
+  const pillText=isHobby?hobbyLabel:skillLabel;
   const pillTextCol=isHobby?T.textHobby:T.textSkill;
   return(
     <g>
       <line x1={p1.x} y1={p1.y} x2={p2.x} y2={p2.y} stroke={lineCol} strokeWidth={1} strokeDasharray="3 2"/>
       <g onMouseDown={printMode?null:onMouseDown} style={{cursor:printMode?"default":"grab"}}>
         <rect x={sx-SW/2} y={sy-SH/2} width={SW} height={SH} rx={5} fill={fillCol} stroke={borderCol} strokeWidth={1.2}/>
-        <text x={sx-SW/2+7} y={sy+5} fontSize={14} style={{cursor:printMode?"default":"pointer",userSelect:"none"}}
+        {showEmoji&&<text x={sx-SW/2+7} y={sy+5} fontSize={14} style={{cursor:printMode?"default":"pointer",userSelect:"none"}}
           onMouseDown={e=>e.stopPropagation()}
           onClick={printMode?null:e=>{e.stopPropagation();setPickerOpen(v=>!v);}}>
           {ICONS[skill.icon]||"•"}
-        </text>
-        <rect x={sx+SW/2-34} y={sy-SH/2+1} width={33} height={11} rx={3} fill={pillCol}/>
-        <text x={sx+SW/2-17} y={sy-SH/2+9} textAnchor="middle"
+        </text>}
+        {showPills&&<rect x={sx+SW/2-34} y={sy-SH/2+1} width={33} height={11} rx={3} fill={pillCol}/>}
+        {showPills&&<text x={sx+SW/2-17} y={sy-SH/2+9} textAnchor="middle"
           style={{fontFamily:"'Caveat',cursive",fontSize:8,fill:pillTextCol,userSelect:"none",pointerEvents:"none"}}>
           {pillText}
-        </text>
-        <EditText value={skill.label} x={sx-SW/2+24} y={sy-SH/2} w={SW-58} h={SH} fs={11} fill={labelCol}
+        </text>}
+        <EditText value={skill.label} x={showEmoji?sx-SW/2+24:sx-SW/2+6} y={sy-SH/2}
+          w={showEmoji?(showPills?SW-58:SW-30):(showPills?SW-40:SW-12)} h={SH} fs={11} fill={labelCol}
           onChange={v=>onUpdate(branchId,memberId,"skill",v,skillIdx)}/>
       </g>
       {pickerOpen&&!printMode&&(
@@ -241,7 +248,7 @@ function SkillBox({skill,type,mx,my,ox,oy,branchId,memberId,skillIdx,onCommitMov
   );
 }
 
-function MemberNode({member,bx,by,branchId,onCommitMove,onCommitSkillMove,onUpdate,onRemove,zoomRef,T,printMode}){
+function MemberNode({member,bx,by,branchId,onCommitMove,onCommitSkillMove,onUpdate,onRemove,zoomRef,T,printMode,showEmoji,showPills,skillLabel,hobbyLabel}){
   const commit=useCallback((nx,ny)=>onCommitMove(branchId,member.id,nx-bx,ny-by),[bx,by,branchId,member.id,onCommitMove]);
   const {x:mx,y:my,onMouseDown}=useDrag(bx+member.ox,by+member.oy,commit,zoomRef);
   const p1=rectEdge(bx,by,BW,BH,mx,my),p2=rectEdge(mx,my,MW,MH,bx,by);
@@ -256,7 +263,8 @@ function MemberNode({member,bx,by,branchId,onCommitMove,onCommitSkillMove,onUpda
           ox={sk.ox!==undefined?sk.ox:defaultOx}
           oy={sk.oy!==undefined?sk.oy:si*32-((member.skills.length-1)*32)/2}
           branchId={branchId} memberId={member.id} skillIdx={si}
-          onCommitMove={onCommitSkillMove} onUpdate={onUpdate} zoomRef={zoomRef} T={T} printMode={printMode}/>
+          onCommitMove={onCommitSkillMove} onUpdate={onUpdate} zoomRef={zoomRef} T={T} printMode={printMode}
+          showEmoji={showEmoji} showPills={showPills} skillLabel={skillLabel} hobbyLabel={hobbyLabel}/>
       ))}
       <g onMouseDown={printMode?null:onMouseDown} style={{cursor:printMode?"default":"grab"}}>
         <rect x={mx-MW/2} y={my-MH/2} width={MW} height={MH} rx={4}
@@ -278,7 +286,7 @@ const CIRCLE_CENTRES=[{cx:CX-72,cy:CY-52},{cx:CX+72,cy:CY-52},{cx:CX,cy:CY+62}];
 
 function BranchNode({branch,initPos,onCommitBranchMove,onCommitMemberMove,onCommitSkillMove,
                      onUpdate,onUpdateBranchLabel,onAddMember,onRemoveMember,
-                     collapsed,onToggleCollapse,zoomRef,T,printMode}){
+                     collapsed,onToggleCollapse,zoomRef,T,printMode,showEmoji,showPills,skillLabel,hobbyLabel}){
   const commit=useCallback((nx,ny)=>onCommitBranchMove(branch.id,nx,ny),[branch.id,onCommitBranchMove]);
   const {x:bx,y:by,onMouseDown}=useDrag(initPos.x,initPos.y,commit,zoomRef);
   const closest=CIRCLE_CENTRES.reduce((best,c)=>{
@@ -297,7 +305,8 @@ function BranchNode({branch,initPos,onCommitBranchMove,onCommitMemberMove,onComm
       {!collapsed&&branch.members.map(m=>(
         <MemberNode key={m.id} member={m} bx={bx} by={by} branchId={branch.id}
           onCommitMove={onCommitMemberMove} onCommitSkillMove={onCommitSkillMove}
-          onUpdate={onUpdate} onRemove={onRemoveMember} zoomRef={zoomRef} T={T} printMode={printMode}/>
+          onUpdate={onUpdate} onRemove={onRemoveMember} zoomRef={zoomRef} T={T} printMode={printMode}
+          showEmoji={showEmoji} showPills={showPills} skillLabel={skillLabel} hobbyLabel={hobbyLabel}/>
       ))}
       <g onMouseDown={printMode?null:onMouseDown} style={{cursor:printMode?"default":"grab"}}>
         <rect x={bx-BW/2} y={by-BH/2} width={BW} height={BH} rx={6}
@@ -414,6 +423,10 @@ function MindMap(){
   const [pan,      setPan]      = useState({x:0,y:0});
   const [exporting,setExporting] = useState(false);
   const [printMode,setPrintMode] = useState(false);
+  const [showEmoji,setShowEmoji] = useState(()=>__SAVED_STATE__?(__SAVED_STATE__.showEmoji!==false):true);
+  const [showPills,setShowPills] = useState(()=>__SAVED_STATE__?(__SAVED_STATE__.showPills!==false):true);
+  const [skillLabel,setSkillLabel] = useState(()=>__SAVED_STATE__?(__SAVED_STATE__.skillLabel||"SKILL"):"SKILL");
+  const [hobbyLabel,setHobbyLabel] = useState(()=>__SAVED_STATE__?(__SAVED_STATE__.hobbyLabel||"HOBBY"):"HOBBY");
 
   const T = THEMES[themeIdx] || THEMES[0];
   const svgRef  = useRef();
@@ -525,9 +538,6 @@ function MindMap(){
 
   const exportPNG=useCallback(async()=>{
     setExporting(true);
-    setPrintMode(true);  // hide +/- and × buttons in the export
-    // Wait one frame for React to re-render without the buttons before we capture
-    await new Promise(r=>setTimeout(r,80));
     try{
       const{minX,minY,w,h}=getContentBounds();
       const SCALE=3,clone=buildExportClone(w,h,minX,minY,w*SCALE,h*SCALE);
@@ -547,12 +557,12 @@ function MindMap(){
         };
         img.onerror=reject;img.src=svgUrl;
       });
-    }finally{setExporting(false);setPrintMode(false);}  // restore UI
+    }finally{setExporting(false);}
   },[getContentBounds,buildExportClone,T.bg]);
 
   const saveHTML=useCallback(()=>{
     try{
-      const stateJson=JSON.stringify({branches,positions,center,themeIdx});
+      const stateJson=JSON.stringify({branches,positions,center,themeIdx,showEmoji,showPills,skillLabel,hobbyLabel});
       // __STATIC_SOURCE__ = app code without the __SAVED_STATE__ line.
       // We prepend a fresh state line so chained saves always work from the same base.
       const staticSrc=window.__STATIC_SOURCE__;
@@ -609,6 +619,36 @@ function MindMap(){
           <span style={{fontFamily:"'Caveat',cursive",fontSize:12,color:T.textMember,opacity:0.4}}>
             Click icon to change · Double-click text to edit
           </span>
+          <div style={{width:1,height:20,background:T.btnBorder,margin:"0 4px"}}/>
+          <label style={{display:"flex",gap:5,alignItems:"center",cursor:"pointer",
+            fontFamily:"'Caveat',cursive",fontSize:13,color:T.textAccent}}>
+            <input type="checkbox" checked={showEmoji} onChange={e=>setShowEmoji(e.target.checked)}
+              style={{accentColor:T.accent,width:13,height:13,cursor:"pointer"}}/>
+            Icons
+          </label>
+          <label style={{display:"flex",gap:5,alignItems:"center",cursor:"pointer",
+            fontFamily:"'Caveat',cursive",fontSize:13,color:T.textAccent}}>
+            <input type="checkbox" checked={showPills} onChange={e=>setShowPills(e.target.checked)}
+              style={{accentColor:T.accent,width:13,height:13,cursor:"pointer"}}/>
+            Labels
+          </label>
+          <div style={{width:1,height:20,background:T.btnBorder,margin:"0 4px"}}/>
+          <div style={{display:"flex",gap:5,alignItems:"center"}}>
+            <span style={{fontFamily:"'Caveat',cursive",fontSize:12,color:T.textSkill,opacity:0.7}}>Skill:</span>
+            <input value={skillLabel} onChange={e=>setSkillLabel(e.target.value.toUpperCase())}
+              maxLength={10}
+              style={{width:60,background:"transparent",border:"1px solid "+T.skillStroke,
+                color:T.textSkill,fontFamily:"'Caveat',cursive",fontSize:12,borderRadius:4,
+                padding:"1px 5px",outline:"none"}}/>
+          </div>
+          <div style={{display:"flex",gap:5,alignItems:"center"}}>
+            <span style={{fontFamily:"'Caveat',cursive",fontSize:12,color:T.textHobby,opacity:0.7}}>Hobby:</span>
+            <input value={hobbyLabel} onChange={e=>setHobbyLabel(e.target.value.toUpperCase())}
+              maxLength={10}
+              style={{width:60,background:"transparent",border:"1px solid "+T.hobbyStroke,
+                color:T.textHobby,fontFamily:"'Caveat',cursive",fontSize:12,borderRadius:4,
+                padding:"1px 5px",outline:"none"}}/>
+          </div>
         </div>
       )}
 
@@ -672,7 +712,8 @@ function MindMap(){
               onCommitSkillMove={commitSkill} onUpdate={updateField}
               onUpdateBranchLabel={updateBranchLabel} onAddMember={addMember}
               onRemoveMember={removeMember} collapsed={!!collapsed[branch.id]}
-              onToggleCollapse={toggleCollapse} zoomRef={zoomRef} T={T} printMode={printMode}/>
+              onToggleCollapse={toggleCollapse} zoomRef={zoomRef} T={T} printMode={printMode}
+              showEmoji={showEmoji} showPills={showPills} skillLabel={skillLabel} hobbyLabel={hobbyLabel}/>
           ))}
           {center.map(c=>(
             <CentreCircle key={c.id} c={c} onUpdate={updateCenter} T={T}/>
@@ -685,9 +726,15 @@ function MindMap(){
 
 ReactDOM.createRoot(document.getElementById("root")).render(<MindMap/>);
 </script>
-<script>window.__STATIC_SOURCE__=document.getElementById('app-source').textContent;</script>
+<script>
+// Read static source from the inert script tag — works on file:// with no fetch needed.
+// This is the app code WITHOUT the __SAVED_STATE__ line so chained saves always
+// prepend a fresh state line to the same base code.
+window.__STATIC_SOURCE__ = document.getElementById('app-source').textContent.trim();
+</script>
 <script type="text/babel">
-const __SAVED_STATE__ = {"branches":[{"id":"b1","label":"Commercial Property\nTeam 1","members":[{"id":"m1","name":"Robert Griggs","ox":-200,"oy":-110,"skills":[{"icon":"building","label":"Lease Renewals","ox":-128,"oy":-16},{"icon":"raft","label":"Rafting","ox":-128,"oy":16}]},{"id":"m2","name":"Brenda Black","ox":-200,"oy":-55,"skills":[{"icon":"map","label":"Zoning Laws","ox":-128,"oy":-16},{"icon":"golf","label":"Golf","ox":-128,"oy":16}]},{"id":"m3","name":"Neil King","ox":-200,"oy":0,"skills":[{"icon":"handshake","label":"Acquisitions","ox":-128,"oy":-16},{"icon":"boxing","label":"Boxing","ox":-128,"oy":16}]},{"id":"m4","name":"Lisa Monroy","ox":-200,"oy":55,"skills":[{"icon":"gavel","label":"Litigation","ox":-128,"oy":-16},{"icon":"swimmer","label":"Swimming","ox":-128,"oy":16}]},{"id":"m5","name":"Alan Banks","ox":-200,"oy":110,"skills":[{"icon":"shop","label":"Retail Assets","ox":-128,"oy":-16},{"icon":"book","label":"Reading","ox":-128,"oy":16}]}]},{"id":"b2","label":"Commercial Property\nTeam 2","members":[{"id":"m6","name":"Gary Grant","ox":-200,"oy":-82,"skills":[{"icon":"crane","label":"Development","ox":-128,"oy":-16},{"icon":"dice","label":"Poker","ox":-128,"oy":16}]},{"id":"m7","name":"Elena Burns","ox":-200,"oy":-27,"skills":[{"icon":"pen","label":"Contracts","ox":-128,"oy":-16},{"icon":"dancer","label":"Dancing","ox":-128,"oy":16}]},{"id":"m8","name":"Henry Knight","ox":-200,"oy":27,"skills":[{"icon":"document","label":"Planning","ox":-128,"oy":-16},{"icon":"guitar","label":"Music","ox":-128,"oy":16}]},{"id":"m9","name":"Peter Moore","ox":-200,"oy":82,"skills":[{"icon":"chart","label":"Investments","ox":-128,"oy":-16},{"icon":"bike","label":"Cycling","ox":-128,"oy":16}]}]},{"id":"b3","label":"Commercial Property\nTeam 3","members":[{"id":"m10","name":"Julia Lane","ox":-200,"oy":-28,"skills":[{"icon":"key","label":"Tenancy","ox":-128,"oy":-16},{"icon":"shoe","label":"Running","ox":-128,"oy":16}]},{"id":"m11","name":"Blane Blabla","ox":-200,"oy":28,"skills":[{"icon":"fist","label":"Power","ox":-128,"oy":-16}]}]},{"id":"b4","label":"New Homes","members":[{"id":"m12","name":"Kevin Green","ox":200,"oy":-55,"skills":[{"icon":"house","label":"Site Assembly","ox":128,"oy":-16},{"icon":"yoga","label":"Pilates","ox":128,"oy":16}]},{"id":"m13","name":"Maria Miller","ox":200,"oy":0,"skills":[{"icon":"pen","label":"Conveyancing","ox":128,"oy":-16},{"icon":"camera","label":"Photography","ox":128,"oy":16}]},{"id":"m14","name":"Laura Price","ox":200,"oy":55,"skills":[{"icon":"shield","label":"Warranty","ox":128,"oy":-16},{"icon":"hiker","label":"Hiking","ox":128,"oy":16}]}]},{"id":"b5","label":"Banking","members":[{"id":"m15","name":"George Glass","ox":200,"oy":-55,"skills":[{"icon":"safe","label":"Secured Lending","ox":128,"oy":-16},{"icon":"chef","label":"Cooking","ox":128,"oy":16}]},{"id":"m16","name":"Connor McNally","ox":200,"oy":0,"skills":[{"icon":"magnifying","label":"Due Diligence","ox":128,"oy":-16},{"icon":"chess","label":"Chess","ox":128,"oy":16}]},{"id":"m17","name":"David Brown","ox":200,"oy":55,"skills":[{"icon":"calculator","label":"Restructuring","ox":128,"oy":-16},{"icon":"boat","label":"Kayaking","ox":128,"oy":16}]}]},{"id":"b6","label":"Construction\n& Energy","members":[{"id":"m18","name":"James Dean","ox":200,"oy":-32,"skills":[{"icon":"hardhat","label":"Procurement","ox":128,"oy":-16},{"icon":"saw","label":"Woodworking","ox":128,"oy":16}]},{"id":"m19","name":"Sarah Connor","ox":200,"oy":32,"skills":[{"icon":"leaf","label":"Renewables","ox":128,"oy":-16},{"icon":"paintbrush","label":"Painting","ox":128,"oy":16}]}]},{"id":"b7","label":"Private Client","members":[{"id":"m20","name":"Tom Marks","ox":200,"oy":-55,"skills":[{"icon":"scroll","label":"Estate Planning","ox":128,"oy":-16},{"icon":"tennis","label":"Tennis","ox":128,"oy":16}]},{"id":"m21","name":"Helen Kerr","ox":200,"oy":0,"skills":[{"icon":"coin","label":"Taxation","ox":128,"oy":-16},{"icon":"microphone","label":"Singing","ox":128,"oy":16}]},{"id":"m22","name":"Liam Mason","ox":200,"oy":55,"skills":[{"icon":"family","label":"Probate","ox":128,"oy":-16},{"icon":"telescope","label":"Astronomy","ox":128,"oy":16}]}]}],"positions":{"b1":{"x":430,"y":230},"b2":{"x":320,"y":520},"b3":{"x":430,"y":810},"b4":{"x":1120,"y":260},"b5":{"x":1200,"y":520},"b6":{"x":1130,"y":750},"b7":{"x":1020,"y":940}},"center":[{"id":"c1","text":"Commercial Property","dx":-72,"dy":-52},{"id":"c2","text":"Private Client & New Homes","dx":72,"dy":-52},{"id":"c3","text":"Construction, Energy & Banking","dx":0,"dy":62}],"themeIdx":0}; // replaced by Save button
+const __SAVED_STATE__ = null; // replaced by Save button
+
 const { useState, useRef, useCallback, useEffect } = React;
 
 const THEMES = [
@@ -878,7 +925,7 @@ function IconPicker({x,y,onPick,onClose}){
   );
 }
 
-function SkillBox({skill,type,mx,my,ox,oy,branchId,memberId,skillIdx,onCommitMove,onUpdate,zoomRef,T,printMode}){
+function SkillBox({skill,type,mx,my,ox,oy,branchId,memberId,skillIdx,onCommitMove,onUpdate,zoomRef,T,printMode,showEmoji,showPills,skillLabel,hobbyLabel}){
   const [pickerOpen,setPickerOpen]=useState(false);
   const commit=useCallback((nx,ny)=>onCommitMove(branchId,memberId,skillIdx,nx-mx,ny-my),[mx,my,branchId,memberId,skillIdx,onCommitMove]);
   const {x:sx,y:sy,onMouseDown}=useDrag(mx+ox,my+oy,commit,zoomRef);
@@ -889,24 +936,25 @@ function SkillBox({skill,type,mx,my,ox,oy,branchId,memberId,skillIdx,onCommitMov
   const lineCol=isHobby?T.lineHobby:T.lineSkill;
   const labelCol=isHobby?T.textHobby:T.textSkill;
   const pillCol=isHobby?T.pillHobby:T.pillSkill;
-  const pillText=isHobby?"HOBBY":"SKILL";
+  const pillText=isHobby?hobbyLabel:skillLabel;
   const pillTextCol=isHobby?T.textHobby:T.textSkill;
   return(
     <g>
       <line x1={p1.x} y1={p1.y} x2={p2.x} y2={p2.y} stroke={lineCol} strokeWidth={1} strokeDasharray="3 2"/>
       <g onMouseDown={printMode?null:onMouseDown} style={{cursor:printMode?"default":"grab"}}>
         <rect x={sx-SW/2} y={sy-SH/2} width={SW} height={SH} rx={5} fill={fillCol} stroke={borderCol} strokeWidth={1.2}/>
-        <text x={sx-SW/2+7} y={sy+5} fontSize={14} style={{cursor:printMode?"default":"pointer",userSelect:"none"}}
+        {showEmoji&&<text x={sx-SW/2+7} y={sy+5} fontSize={14} style={{cursor:printMode?"default":"pointer",userSelect:"none"}}
           onMouseDown={e=>e.stopPropagation()}
           onClick={printMode?null:e=>{e.stopPropagation();setPickerOpen(v=>!v);}}>
           {ICONS[skill.icon]||"•"}
-        </text>
-        <rect x={sx+SW/2-34} y={sy-SH/2+1} width={33} height={11} rx={3} fill={pillCol}/>
-        <text x={sx+SW/2-17} y={sy-SH/2+9} textAnchor="middle"
+        </text>}
+        {showPills&&<rect x={sx+SW/2-34} y={sy-SH/2+1} width={33} height={11} rx={3} fill={pillCol}/>}
+        {showPills&&<text x={sx+SW/2-17} y={sy-SH/2+9} textAnchor="middle"
           style={{fontFamily:"'Caveat',cursive",fontSize:8,fill:pillTextCol,userSelect:"none",pointerEvents:"none"}}>
           {pillText}
-        </text>
-        <EditText value={skill.label} x={sx-SW/2+24} y={sy-SH/2} w={SW-58} h={SH} fs={11} fill={labelCol}
+        </text>}
+        <EditText value={skill.label} x={showEmoji?sx-SW/2+24:sx-SW/2+6} y={sy-SH/2}
+          w={showEmoji?(showPills?SW-58:SW-30):(showPills?SW-40:SW-12)} h={SH} fs={11} fill={labelCol}
           onChange={v=>onUpdate(branchId,memberId,"skill",v,skillIdx)}/>
       </g>
       {pickerOpen&&!printMode&&(
@@ -918,7 +966,7 @@ function SkillBox({skill,type,mx,my,ox,oy,branchId,memberId,skillIdx,onCommitMov
   );
 }
 
-function MemberNode({member,bx,by,branchId,onCommitMove,onCommitSkillMove,onUpdate,onRemove,zoomRef,T,printMode}){
+function MemberNode({member,bx,by,branchId,onCommitMove,onCommitSkillMove,onUpdate,onRemove,zoomRef,T,printMode,showEmoji,showPills,skillLabel,hobbyLabel}){
   const commit=useCallback((nx,ny)=>onCommitMove(branchId,member.id,nx-bx,ny-by),[bx,by,branchId,member.id,onCommitMove]);
   const {x:mx,y:my,onMouseDown}=useDrag(bx+member.ox,by+member.oy,commit,zoomRef);
   const p1=rectEdge(bx,by,BW,BH,mx,my),p2=rectEdge(mx,my,MW,MH,bx,by);
@@ -933,7 +981,8 @@ function MemberNode({member,bx,by,branchId,onCommitMove,onCommitSkillMove,onUpda
           ox={sk.ox!==undefined?sk.ox:defaultOx}
           oy={sk.oy!==undefined?sk.oy:si*32-((member.skills.length-1)*32)/2}
           branchId={branchId} memberId={member.id} skillIdx={si}
-          onCommitMove={onCommitSkillMove} onUpdate={onUpdate} zoomRef={zoomRef} T={T} printMode={printMode}/>
+          onCommitMove={onCommitSkillMove} onUpdate={onUpdate} zoomRef={zoomRef} T={T} printMode={printMode}
+          showEmoji={showEmoji} showPills={showPills} skillLabel={skillLabel} hobbyLabel={hobbyLabel}/>
       ))}
       <g onMouseDown={printMode?null:onMouseDown} style={{cursor:printMode?"default":"grab"}}>
         <rect x={mx-MW/2} y={my-MH/2} width={MW} height={MH} rx={4}
@@ -955,7 +1004,7 @@ const CIRCLE_CENTRES=[{cx:CX-72,cy:CY-52},{cx:CX+72,cy:CY-52},{cx:CX,cy:CY+62}];
 
 function BranchNode({branch,initPos,onCommitBranchMove,onCommitMemberMove,onCommitSkillMove,
                      onUpdate,onUpdateBranchLabel,onAddMember,onRemoveMember,
-                     collapsed,onToggleCollapse,zoomRef,T,printMode}){
+                     collapsed,onToggleCollapse,zoomRef,T,printMode,showEmoji,showPills,skillLabel,hobbyLabel}){
   const commit=useCallback((nx,ny)=>onCommitBranchMove(branch.id,nx,ny),[branch.id,onCommitBranchMove]);
   const {x:bx,y:by,onMouseDown}=useDrag(initPos.x,initPos.y,commit,zoomRef);
   const closest=CIRCLE_CENTRES.reduce((best,c)=>{
@@ -974,7 +1023,8 @@ function BranchNode({branch,initPos,onCommitBranchMove,onCommitMemberMove,onComm
       {!collapsed&&branch.members.map(m=>(
         <MemberNode key={m.id} member={m} bx={bx} by={by} branchId={branch.id}
           onCommitMove={onCommitMemberMove} onCommitSkillMove={onCommitSkillMove}
-          onUpdate={onUpdate} onRemove={onRemoveMember} zoomRef={zoomRef} T={T} printMode={printMode}/>
+          onUpdate={onUpdate} onRemove={onRemoveMember} zoomRef={zoomRef} T={T} printMode={printMode}
+          showEmoji={showEmoji} showPills={showPills} skillLabel={skillLabel} hobbyLabel={hobbyLabel}/>
       ))}
       <g onMouseDown={printMode?null:onMouseDown} style={{cursor:printMode?"default":"grab"}}>
         <rect x={bx-BW/2} y={by-BH/2} width={BW} height={BH} rx={6}
@@ -1091,6 +1141,10 @@ function MindMap(){
   const [pan,      setPan]      = useState({x:0,y:0});
   const [exporting,setExporting] = useState(false);
   const [printMode,setPrintMode] = useState(false);
+  const [showEmoji,setShowEmoji] = useState(()=>__SAVED_STATE__?(__SAVED_STATE__.showEmoji!==false):true);
+  const [showPills,setShowPills] = useState(()=>__SAVED_STATE__?(__SAVED_STATE__.showPills!==false):true);
+  const [skillLabel,setSkillLabel] = useState(()=>__SAVED_STATE__?(__SAVED_STATE__.skillLabel||"SKILL"):"SKILL");
+  const [hobbyLabel,setHobbyLabel] = useState(()=>__SAVED_STATE__?(__SAVED_STATE__.hobbyLabel||"HOBBY"):"HOBBY");
 
   const T = THEMES[themeIdx] || THEMES[0];
   const svgRef  = useRef();
@@ -1202,9 +1256,6 @@ function MindMap(){
 
   const exportPNG=useCallback(async()=>{
     setExporting(true);
-    setPrintMode(true);  // hide +/- and × buttons in the export
-    // Wait one frame for React to re-render without the buttons before we capture
-    await new Promise(r=>setTimeout(r,80));
     try{
       const{minX,minY,w,h}=getContentBounds();
       const SCALE=3,clone=buildExportClone(w,h,minX,minY,w*SCALE,h*SCALE);
@@ -1224,12 +1275,12 @@ function MindMap(){
         };
         img.onerror=reject;img.src=svgUrl;
       });
-    }finally{setExporting(false);setPrintMode(false);}  // restore UI
+    }finally{setExporting(false);}
   },[getContentBounds,buildExportClone,T.bg]);
 
   const saveHTML=useCallback(()=>{
     try{
-      const stateJson=JSON.stringify({branches,positions,center,themeIdx});
+      const stateJson=JSON.stringify({branches,positions,center,themeIdx,showEmoji,showPills,skillLabel,hobbyLabel});
       // __STATIC_SOURCE__ = app code without the __SAVED_STATE__ line.
       // We prepend a fresh state line so chained saves always work from the same base.
       const staticSrc=window.__STATIC_SOURCE__;
@@ -1286,6 +1337,36 @@ function MindMap(){
           <span style={{fontFamily:"'Caveat',cursive",fontSize:12,color:T.textMember,opacity:0.4}}>
             Click icon to change · Double-click text to edit
           </span>
+          <div style={{width:1,height:20,background:T.btnBorder,margin:"0 4px"}}/>
+          <label style={{display:"flex",gap:5,alignItems:"center",cursor:"pointer",
+            fontFamily:"'Caveat',cursive",fontSize:13,color:T.textAccent}}>
+            <input type="checkbox" checked={showEmoji} onChange={e=>setShowEmoji(e.target.checked)}
+              style={{accentColor:T.accent,width:13,height:13,cursor:"pointer"}}/>
+            Icons
+          </label>
+          <label style={{display:"flex",gap:5,alignItems:"center",cursor:"pointer",
+            fontFamily:"'Caveat',cursive",fontSize:13,color:T.textAccent}}>
+            <input type="checkbox" checked={showPills} onChange={e=>setShowPills(e.target.checked)}
+              style={{accentColor:T.accent,width:13,height:13,cursor:"pointer"}}/>
+            Labels
+          </label>
+          <div style={{width:1,height:20,background:T.btnBorder,margin:"0 4px"}}/>
+          <div style={{display:"flex",gap:5,alignItems:"center"}}>
+            <span style={{fontFamily:"'Caveat',cursive",fontSize:12,color:T.textSkill,opacity:0.7}}>Skill:</span>
+            <input value={skillLabel} onChange={e=>setSkillLabel(e.target.value.toUpperCase())}
+              maxLength={10}
+              style={{width:60,background:"transparent",border:"1px solid "+T.skillStroke,
+                color:T.textSkill,fontFamily:"'Caveat',cursive",fontSize:12,borderRadius:4,
+                padding:"1px 5px",outline:"none"}}/>
+          </div>
+          <div style={{display:"flex",gap:5,alignItems:"center"}}>
+            <span style={{fontFamily:"'Caveat',cursive",fontSize:12,color:T.textHobby,opacity:0.7}}>Hobby:</span>
+            <input value={hobbyLabel} onChange={e=>setHobbyLabel(e.target.value.toUpperCase())}
+              maxLength={10}
+              style={{width:60,background:"transparent",border:"1px solid "+T.hobbyStroke,
+                color:T.textHobby,fontFamily:"'Caveat',cursive",fontSize:12,borderRadius:4,
+                padding:"1px 5px",outline:"none"}}/>
+          </div>
         </div>
       )}
 
@@ -1349,7 +1430,8 @@ function MindMap(){
               onCommitSkillMove={commitSkill} onUpdate={updateField}
               onUpdateBranchLabel={updateBranchLabel} onAddMember={addMember}
               onRemoveMember={removeMember} collapsed={!!collapsed[branch.id]}
-              onToggleCollapse={toggleCollapse} zoomRef={zoomRef} T={T} printMode={printMode}/>
+              onToggleCollapse={toggleCollapse} zoomRef={zoomRef} T={T} printMode={printMode}
+              showEmoji={showEmoji} showPills={showPills} skillLabel={skillLabel} hobbyLabel={hobbyLabel}/>
           ))}
           {center.map(c=>(
             <CentreCircle key={c.id} c={c} onUpdate={updateCenter} T={T}/>
@@ -1362,4 +1444,5 @@ function MindMap(){
 
 ReactDOM.createRoot(document.getElementById("root")).render(<MindMap/>);
 </script>
-</body></html>
+</body>
+</html>
