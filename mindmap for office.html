@@ -141,12 +141,15 @@ function circleEdge(cx,cy,r,tx,ty){
   return{x:cx+(dx/d)*r,y:cy+(dy/d)*r};
 }
 
-// Canvas-based text measurement used to auto-size skill/hobby boxes.
-// Caches a single offscreen canvas for performance across many calls.
-function measureText(text,fontSize=11,weight=400){
+// Canvas-based text measurement used to auto-size name/skill/hobby boxes.
+// We pass `font` so the caller chooses: Caveat when editing (tight, accurate
+// for the live UI font), Georgia when in print/export mode (pessimistic, so
+// boxes are wide enough for the export's fallback font chain since the SVG
+// export can't load Google Fonts offline). Cached canvas for perf.
+function measureText(text,fontSize=11,weight=400,font="'Caveat', cursive"){
   const c=measureText._c||(measureText._c=document.createElement("canvas"));
   const ctx=c.getContext("2d");
-  ctx.font=`${weight} ${fontSize}px 'Caveat', cursive`;
+  ctx.font=`${weight} ${fontSize}px ${font}`;
   return ctx.measureText(text||"").width;
 }
 
@@ -226,24 +229,29 @@ function IconPicker({x,y,onPick,onClose}){
   );
 }
 
-function SkillBox({skill,type,mx,my,ox,oy,branchId,memberId,skillIdx,onCommitMove,onUpdate,zoomRef,T,printMode,showEmoji,showPills,skillLabel,hobbyLabel}){
+function SkillBox({skill,type,mx,my,memberW,ox,oy,branchId,memberId,skillIdx,onCommitMove,onUpdate,zoomRef,T,printMode,showEmoji,showPills,skillLabel,hobbyLabel}){
   const [pickerOpen,setPickerOpen]=useState(false);
   const commit=useCallback((nx,ny)=>onCommitMove(branchId,memberId,skillIdx,nx-mx,ny-my),[mx,my,branchId,memberId,skillIdx,onCommitMove]);
   const {x:sx,y:sy,onMouseDown}=useDrag(mx+ox,my+oy,commit,zoomRef);
   // Effective width: SW by default; grows symmetrically from the box centre
-  // when the label is too long to fit next to the icon and pill.
-  // Overhead = icon gutter + pill gutter + small side paddings; +6 is a
-  // buffer covering font-fallback differences before Caveat finishes loading.
-  const overhead=(showEmoji?24:6)+(showPills?34:6);
-  const W=Math.max(SW,Math.ceil(measureText(skill.label,11)+overhead+6));
-  const p1=rectEdge(mx,my,MW,MH,sx,sy),p2=rectEdge(sx,sy,W,SH,mx,my);
+  // when the label is too long to fit. Pill width also grows when its
+  // label (e.g. "EXPERTISE" instead of "SKILL") doesn't fit the default 33px.
   const isHobby=type==="hobby";
+  const pillText=isHobby?hobbyLabel:skillLabel;
+  // Use Georgia (wider) only in print/export mode so on-screen boxes stay tight.
+  const measureFont=printMode?"Georgia, serif":"'Caveat', cursive";
+  const pillW=showPills?Math.max(33,Math.ceil(measureText(pillText,8,400,measureFont)+10)):0;
+  // Overhead: icon gutter (24px when icon shown, 6 padding otherwise) +
+  // pill gutter (pillW+6 when pill shown, 6 otherwise) — the +6 accounts for
+  // the rx=5 rounded corner of the box plus a small clearance from the pill.
+  const overhead=(showEmoji?24:6)+(showPills?pillW+6:6);
+  const W=Math.max(SW,Math.ceil(measureText(skill.label,11,400,measureFont)+overhead+6));
+  const p1=rectEdge(mx,my,memberW||MW,MH,sx,sy),p2=rectEdge(sx,sy,W,SH,mx,my);
   const borderCol=isHobby?T.hobbyStroke:T.skillStroke;
   const fillCol=isHobby?T.hobbyFill:T.skillFill;
   const lineCol=isHobby?T.lineHobby:T.lineSkill;
   const labelCol=isHobby?T.textHobby:T.textSkill;
   const pillCol=isHobby?T.pillHobby:T.pillSkill;
-  const pillText=isHobby?hobbyLabel:skillLabel;
   const pillTextCol=isHobby?T.textHobby:T.textSkill;
   return(
     <g>
@@ -255,13 +263,13 @@ function SkillBox({skill,type,mx,my,ox,oy,branchId,memberId,skillIdx,onCommitMov
           onClick={printMode?null:e=>{e.stopPropagation();setPickerOpen(v=>!v);}}>
           {ICONS[skill.icon]||"•"}
         </text>}
-        {showPills&&<rect x={sx+W/2-34} y={sy-SH/2+1} width={33} height={11} rx={3} fill={pillCol}/>}
-        {showPills&&<text x={sx+W/2-17} y={sy-SH/2+6} textAnchor="middle" dominantBaseline="central"
+        {showPills&&<rect x={sx+W/2-pillW-4} y={sy-SH/2+1} width={pillW} height={11} rx={3} fill={pillCol}/>}
+        {showPills&&<text x={sx+W/2-pillW/2-4} y={sy-SH/2+6} textAnchor="middle" dominantBaseline="central"
           style={{fontFamily:"'Caveat',cursive",fontSize:8,fill:pillTextCol,userSelect:"none",pointerEvents:"none"}}>
           {pillText}
         </text>}
         <EditText value={skill.label} x={showEmoji?sx-W/2+24:sx-W/2+6} y={sy-SH/2}
-          w={showEmoji?(showPills?W-58:W-30):(showPills?W-40:W-12)} h={SH} fs={11} fill={labelCol}
+          w={showEmoji?(showPills?W-30-pillW:W-30):(showPills?W-12-pillW:W-12)} h={SH} fs={11} fill={labelCol}
           onChange={v=>onUpdate(branchId,memberId,"skill",v,skillIdx)}/>
       </g>
       {pickerOpen&&!printMode&&(
@@ -276,15 +284,22 @@ function SkillBox({skill,type,mx,my,ox,oy,branchId,memberId,skillIdx,onCommitMov
 function MemberNode({member,bx,by,branchId,onCommitMove,onCommitSkillMove,onUpdate,onRemove,zoomRef,T,printMode,showEmoji,showPills,skillLabel,hobbyLabel}){
   const commit=useCallback((nx,ny)=>onCommitMove(branchId,member.id,nx-bx,ny-by),[bx,by,branchId,member.id,onCommitMove]);
   const {x:mx,y:my,onMouseDown}=useDrag(bx+member.ox,by+member.oy,commit,zoomRef);
-  const p1=rectEdge(bx,by,BW,BH,mx,my),p2=rectEdge(mx,my,MW,MH,bx,by);
-  const defaultOx=mx<CX?-(SW+MW)/2-14:(SW+MW)/2+14;
+  // Effective member-box width: MW by default; grows when the name is too
+  // long to fit. Reserve 18px on the right for the × delete button area.
+  // Use Georgia (wider) only in print/export mode so on-screen boxes stay
+  // tight — Caveat is significantly narrower than Georgia at the same size.
+  const measureFont=printMode?"Georgia, serif":"'Caveat', cursive";
+  const nameOverhead=18;
+  const memberW=Math.max(MW,Math.ceil(measureText(member.name,12,700,measureFont)+nameOverhead+8));
+  const p1=rectEdge(bx,by,BW,BH,mx,my),p2=rectEdge(mx,my,memberW,MH,bx,by);
+  const defaultOx=mx<CX?-(SW+memberW)/2-14:(SW+memberW)/2+14;
   return(
     <g>
       <line x1={p1.x} y1={p1.y} x2={p2.x} y2={p2.y}
         stroke={T.lineMember} strokeWidth={1.2} strokeOpacity={0.45} strokeDasharray="5 3"/>
       {member.skills.map((sk,si)=>(
         <SkillBox key={si} skill={sk} type={si%2===0?"skill":"hobby"}
-          mx={mx} my={my}
+          mx={mx} my={my} memberW={memberW}
           ox={sk.ox!==undefined?sk.ox:defaultOx}
           oy={sk.oy!==undefined?sk.oy:si*32-((member.skills.length-1)*32)/2}
           branchId={branchId} memberId={member.id} skillIdx={si}
@@ -292,12 +307,12 @@ function MemberNode({member,bx,by,branchId,onCommitMove,onCommitSkillMove,onUpda
           showEmoji={showEmoji} showPills={showPills} skillLabel={skillLabel} hobbyLabel={hobbyLabel}/>
       ))}
       <g onMouseDown={printMode?null:onMouseDown} style={{cursor:printMode?"default":"grab"}}>
-        <rect x={mx-MW/2} y={my-MH/2} width={MW} height={MH} rx={4}
+        <rect x={mx-memberW/2} y={my-MH/2} width={memberW} height={MH} rx={4}
           fill={T.memberFill} stroke={T.memberStroke} strokeWidth={1}/>
-        <EditText value={member.name} x={mx-MW/2} y={my-MH/2} w={printMode?MW:MW-18} h={MH}
+        <EditText value={member.name} x={mx-memberW/2} y={my-MH/2} w={printMode?memberW:memberW-18} h={MH}
           fs={12} bold fill={T.textMember} onChange={v=>onUpdate(branchId,member.id,"name",v)}/>
         {!printMode&&(
-          <text x={mx+MW/2-9} y={my+5} textAnchor="middle" fill="rgba(255,80,80,0.75)"
+          <text x={mx+memberW/2-9} y={my+5} textAnchor="middle" fill="rgba(255,80,80,0.75)"
             fontSize={15} style={{cursor:"pointer"}}
             onMouseDown={e=>e.stopPropagation()}
             onClick={e=>{e.stopPropagation();onRemove(branchId,member.id);}}>×</text>
@@ -452,6 +467,7 @@ function MindMap(){
   const [showPills,setShowPills] = useState(()=>__SAVED_STATE__?(__SAVED_STATE__.showPills!==false):true);
   const [skillLabel,setSkillLabel] = useState(()=>__SAVED_STATE__?(__SAVED_STATE__.skillLabel||"SKILL"):"SKILL");
   const [hobbyLabel,setHobbyLabel] = useState(()=>__SAVED_STATE__?(__SAVED_STATE__.hobbyLabel||"HOBBY"):"HOBBY");
+  const [heading, setHeading] = useState(()=>__SAVED_STATE__?(__SAVED_STATE__.heading||"Team Mind Map"):"Team Mind Map");
 
   const T = THEMES[themeIdx] || THEMES[0];
   const svgRef  = useRef();
@@ -601,7 +617,7 @@ function MindMap(){
 
   const saveHTML=useCallback(()=>{
     try{
-      const stateJson=JSON.stringify({branches,positions,center,themeIdx,showEmoji,showPills,skillLabel,hobbyLabel});
+      const stateJson=JSON.stringify({branches,positions,center,themeIdx,showEmoji,showPills,skillLabel,hobbyLabel,heading});
       // __STATIC_SOURCE__ holds the app code WITHOUT any __SAVED_STATE__ line,
       // so chained saves always prepend a fresh state line onto the same clean base.
       const staticSrc=window.__STATIC_SOURCE__;
@@ -635,7 +651,7 @@ function MindMap(){
       a.download='mindmap-saved.html';
       a.click();
     }catch(err){alert('Save failed: '+err.message);}
-  },[branches,positions,center,themeIdx,showEmoji,showPills,skillLabel,hobbyLabel]);
+  },[branches,positions,center,themeIdx,showEmoji,showPills,skillLabel,hobbyLabel,heading]);
 
   const W=window.innerWidth,H=window.innerHeight;
   const tx=pan.x+W/2-CX*zoom,ty=pan.y+H/2-CY*zoom;
@@ -646,6 +662,22 @@ function MindMap(){
     <div style={{width:"100vw",height:"100vh",background:T.bg,overflow:"hidden",position:"relative"}}>
       <div style={{position:"absolute",inset:0,pointerEvents:"none",opacity:0.03,
         backgroundImage:"repeating-linear-gradient(0deg,#888 0,#888 1px,transparent 1px,transparent 44px),repeating-linear-gradient(90deg,#888 0,#888 1px,transparent 1px,transparent 44px)"}}/>
+
+      {!printMode&&(
+        <div style={{position:"absolute",top:90,left:"50%",transform:"translateX(-50%)",zIndex:25,
+          maxWidth:"80vw"}}>
+          <input value={heading} onChange={e=>setHeading(e.target.value)}
+            placeholder="Add a title..."
+            style={{background:"transparent",border:"none",outline:"none",
+              fontFamily:"'Caveat',cursive",fontSize:32,fontWeight:700,
+              color:T.textAccent,textAlign:"center",
+              width:`${Math.max(280,heading.length*18+40)}px`,
+              padding:"4px 12px",borderRadius:6,
+              transition:"background 0.15s"}}
+            onFocus={e=>e.currentTarget.style.background="rgba(128,128,128,0.08)"}
+            onBlur={e=>e.currentTarget.style.background="transparent"}/>
+        </div>
+      )}
 
       {!printMode&&(
         <div style={{position:"absolute",bottom:16,left:16,zIndex:20,
@@ -679,16 +711,14 @@ function MindMap(){
           <div style={{display:"flex",gap:5,alignItems:"center"}}>
             <span style={{fontFamily:"'Caveat',cursive",fontSize:12,color:T.textSkill,opacity:0.7}}>Skill:</span>
             <input value={skillLabel} onChange={e=>setSkillLabel(e.target.value.toUpperCase())}
-              maxLength={10}
-              style={{width:60,background:"transparent",border:"1px solid "+T.skillStroke,
+              style={{width:110,background:"transparent",border:"1px solid "+T.skillStroke,
                 color:T.textSkill,fontFamily:"'Caveat',cursive",fontSize:12,borderRadius:4,
                 padding:"1px 5px",outline:"none"}}/>
           </div>
           <div style={{display:"flex",gap:5,alignItems:"center"}}>
             <span style={{fontFamily:"'Caveat',cursive",fontSize:12,color:T.textHobby,opacity:0.7}}>Hobby:</span>
             <input value={hobbyLabel} onChange={e=>setHobbyLabel(e.target.value.toUpperCase())}
-              maxLength={10}
-              style={{width:60,background:"transparent",border:"1px solid "+T.hobbyStroke,
+              style={{width:110,background:"transparent",border:"1px solid "+T.hobbyStroke,
                 color:T.textHobby,fontFamily:"'Caveat',cursive",fontSize:12,borderRadius:4,
                 padding:"1px 5px",outline:"none"}}/>
           </div>
@@ -761,6 +791,16 @@ function MindMap(){
           {center.map(c=>(
             <CentreCircle key={c.id} c={c} onUpdate={updateCenter} T={T}/>
           ))}
+          {/* Heading rendered inside the inner <g> so it's included in PNG/SVG exports.
+              Positioned roughly above the centre cluster. Hidden visually when not in
+              printMode (the HTML input above is the editing surface in that case),
+              but always visible in exports because the cloned SVG drops the HTML overlay. */}
+          {printMode&&heading&&(
+            <text x={CX} y={CY-220} textAnchor="middle"
+              style={{fontFamily:"'Caveat',cursive",fontSize:42,fontWeight:700,fill:T.textAccent}}>
+              {heading}
+            </text>
+          )}
         </g>
       </svg>
     </div>
