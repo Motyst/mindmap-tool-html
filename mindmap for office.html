@@ -177,31 +177,42 @@ function useDrag(initX,initY,onCommit,zoomRef){
   return{x:live.current.x,y:live.current.y,onMouseDown};
 }
 
-function EditText({value,onChange,x,y,w,h,fs=12,fill="#fff",bold=false,center=false}){
+function EditText({value,onChange,x,y,w,h,fs=12,fill="#fff",bold=false,italic=false,center=false,align="center",placeholder=""}){
   const [editing,setEditing]=useState(false);
   const [draft,setDraft]=useState(value);
   useEffect(()=>{setDraft(value);},[value]);
   const commit=()=>{setEditing(false);if(draft!==value)onChange(draft);};
-  // Always centre: cx = x + w/2, cy = y + h/2
-  const cx=x+w/2, cy=y+h/2;
+  // cx depends on alignment (left vs default centred); cy is always centred.
+  const cy=y+h/2;
+  const cx=align==="left"?x+4:x+w/2;
+  const textAnchor=align==="left"?"start":"middle";
+  const inputAlign=align==="left"?"left":"center";
+  const fontStyle=italic?"italic":"normal";
+  // Placeholder-aware display: when value is empty and a placeholder was
+  // supplied, render the placeholder dimly. Editing always starts with the
+  // real (possibly empty) value, never the placeholder text.
+  const isEmpty=!value;
+  const displayText=isEmpty&&placeholder?placeholder:value;
+  const displayFill=isEmpty&&placeholder?"rgba(180,180,180,0.45)":fill;
   if(editing)return(
     <foreignObject x={x} y={cy-fs*0.9} width={w} height={fs*1.8} style={{overflow:"visible"}}>
-      <input autoFocus value={draft}
+      <input autoFocus value={draft} placeholder={placeholder}
         onChange={e=>setDraft(e.target.value)} onBlur={commit}
         onKeyDown={e=>{if(e.key==="Enter")commit();if(e.key==="Escape"){setEditing(false);setDraft(value);}}}
         onClick={e=>e.stopPropagation()} onMouseDown={e=>e.stopPropagation()}
         style={{width:"100%",background:"rgba(10,22,50,0.95)",border:"1px solid #d4a843",
           color:"#fff",fontFamily:"'Caveat',cursive",fontSize:fs,fontWeight:bold?"700":"400",
-          textAlign:"center",borderRadius:3,padding:"0 4px",outline:"none",boxSizing:"border-box",
+          fontStyle:fontStyle,
+          textAlign:inputAlign,borderRadius:3,padding:"0 4px",outline:"none",boxSizing:"border-box",
           lineHeight:"1.6"}}/>
     </foreignObject>
   );
   return(
-    <text x={cx} y={cy} textAnchor="middle" dominantBaseline="central" fill={fill}
-      style={{fontFamily:"'Caveat',cursive",fontSize:fs,fontWeight:bold?"700":"400",cursor:"text",userSelect:"none"}}
+    <text x={cx} y={cy} textAnchor={textAnchor} dominantBaseline="central" fill={displayFill}
+      style={{fontFamily:"'Caveat',cursive",fontSize:fs,fontWeight:bold?"700":"400",fontStyle:fontStyle,cursor:"text",userSelect:"none"}}
       onDoubleClick={e=>{e.stopPropagation();setEditing(true);}}
       onMouseDown={e=>e.stopPropagation()}>
-      {value}
+      {displayText}
     </text>
   );
 }
@@ -318,6 +329,14 @@ function MemberNode({member,bx,by,branchId,onCommitMove,onCommitSkillMove,onUpda
             onClick={e=>{e.stopPropagation();onRemove(branchId,member.id);}}>×</text>
         )}
       </g>
+      {/* Position/title — sits just above the name box. Smaller and dimmer
+          than the name. Double-click to add or change. Hidden in print mode
+          when empty so exports don't show the placeholder. */}
+      <EditText value={member.position||""}
+        placeholder={printMode?"":"position"}
+        x={mx-memberW/2} y={my-MH/2-16} w={memberW} h={14} fs={10}
+        fill={T.textAccent} italic
+        onChange={v=>onUpdate(branchId,member.id,"position",v)}/>
     </g>
   );
 }
@@ -409,40 +428,40 @@ function makeBranches(){
   const sl=(icon,label,pos)=>({icon,label,...pos});
   return[
     {id:"b1",label:"Commercial Property\nTeam 1",members:[
-      {id:"m1", name:"Robert Griggs",  ox:-200,oy:-110,skills:[sl("building","Lease Renewals",L0),sl("raft","Rafting",L1)]},
-      {id:"m2", name:"Brenda Black",   ox:-200,oy: -55,skills:[sl("map","Zoning Laws",L0),sl("golf","Golf",L1)]},
-      {id:"m3", name:"Neil King",      ox:-200,oy:   0,skills:[sl("handshake","Acquisitions",L0),sl("boxing","Boxing",L1)]},
-      {id:"m4", name:"Lisa Monroy",    ox:-200,oy:  55,skills:[sl("gavel","Litigation",L0),sl("swimmer","Swimming",L1)]},
-      {id:"m5", name:"Alan Banks",     ox:-200,oy: 110,skills:[sl("shop","Retail Assets",L0),sl("book","Reading",L1)]},
+      {id:"m1", name:"Robert Griggs",  ox:-200,oy:-110,position:"",skills:[sl("building","Lease Renewals",L0),sl("raft","Rafting",L1)]},
+      {id:"m2", name:"Brenda Black",   ox:-200,oy: -55,position:"",skills:[sl("map","Zoning Laws",L0),sl("golf","Golf",L1)]},
+      {id:"m3", name:"Neil King",      ox:-200,oy:   0,position:"",skills:[sl("handshake","Acquisitions",L0),sl("boxing","Boxing",L1)]},
+      {id:"m4", name:"Lisa Monroy",    ox:-200,oy:  55,position:"",skills:[sl("gavel","Litigation",L0),sl("swimmer","Swimming",L1)]},
+      {id:"m5", name:"Alan Banks",     ox:-200,oy: 110,position:"",skills:[sl("shop","Retail Assets",L0),sl("book","Reading",L1)]},
     ]},
     {id:"b2",label:"Commercial Property\nTeam 2",members:[
-      {id:"m6", name:"Gary Grant",     ox:-200,oy: -82,skills:[sl("crane","Development",L0),sl("dice","Poker",L1)]},
-      {id:"m7", name:"Elena Burns",    ox:-200,oy: -27,skills:[sl("pen","Contracts",L0),sl("dancer","Dancing",L1)]},
-      {id:"m8", name:"Henry Knight",   ox:-200,oy:  27,skills:[sl("document","Planning",L0),sl("guitar","Music",L1)]},
-      {id:"m9", name:"Peter Moore",    ox:-200,oy:  82,skills:[sl("chart","Investments",L0),sl("bike","Cycling",L1)]},
+      {id:"m6", name:"Gary Grant",     ox:-200,oy: -82,position:"",skills:[sl("crane","Development",L0),sl("dice","Poker",L1)]},
+      {id:"m7", name:"Elena Burns",    ox:-200,oy: -27,position:"",skills:[sl("pen","Contracts",L0),sl("dancer","Dancing",L1)]},
+      {id:"m8", name:"Henry Knight",   ox:-200,oy:  27,position:"",skills:[sl("document","Planning",L0),sl("guitar","Music",L1)]},
+      {id:"m9", name:"Peter Moore",    ox:-200,oy:  82,position:"",skills:[sl("chart","Investments",L0),sl("bike","Cycling",L1)]},
     ]},
     {id:"b3",label:"Commercial Property\nTeam 3",members:[
-      {id:"m10",name:"Julia Lane",     ox:-200,oy:-28,skills:[sl("key","Tenancy",L0),sl("shoe","Running",L1)]},
-      {id:"m11",name:"Blane Blabla",   ox:-200,oy: 28,skills:[sl("fist","Power",L0)]},
+      {id:"m10",name:"Julia Lane",     ox:-200,oy:-28,position:"",skills:[sl("key","Tenancy",L0),sl("shoe","Running",L1)]},
+      {id:"m11",name:"Blane Blabla",   ox:-200,oy: 28,position:"",skills:[sl("fist","Power",L0)]},
     ]},
     {id:"b4",label:"New Homes",members:[
-      {id:"m12",name:"Kevin Green",    ox:200,oy:-55,skills:[sl("house","Site Assembly",R0),sl("yoga","Pilates",R1)]},
-      {id:"m13",name:"Maria Miller",   ox:200,oy:  0,skills:[sl("pen","Conveyancing",R0),sl("camera","Photography",R1)]},
-      {id:"m14",name:"Laura Price",    ox:200,oy: 55,skills:[sl("shield","Warranty",R0),sl("hiker","Hiking",R1)]},
+      {id:"m12",name:"Kevin Green",    ox:200,oy:-55,position:"",skills:[sl("house","Site Assembly",R0),sl("yoga","Pilates",R1)]},
+      {id:"m13",name:"Maria Miller",   ox:200,oy:  0,position:"",skills:[sl("pen","Conveyancing",R0),sl("camera","Photography",R1)]},
+      {id:"m14",name:"Laura Price",    ox:200,oy: 55,position:"",skills:[sl("shield","Warranty",R0),sl("hiker","Hiking",R1)]},
     ]},
     {id:"b5",label:"Banking",members:[
-      {id:"m15",name:"George Glass",   ox:200,oy:-55,skills:[sl("safe","Secured Lending",R0),sl("chef","Cooking",R1)]},
-      {id:"m16",name:"Connor McNally", ox:200,oy:  0,skills:[sl("magnifying","Due Diligence",R0),sl("chess","Chess",R1)]},
-      {id:"m17",name:"David Brown",    ox:200,oy: 55,skills:[sl("calculator","Restructuring",R0),sl("boat","Kayaking",R1)]},
+      {id:"m15",name:"George Glass",   ox:200,oy:-55,position:"",skills:[sl("safe","Secured Lending",R0),sl("chef","Cooking",R1)]},
+      {id:"m16",name:"Connor McNally", ox:200,oy:  0,position:"",skills:[sl("magnifying","Due Diligence",R0),sl("chess","Chess",R1)]},
+      {id:"m17",name:"David Brown",    ox:200,oy: 55,position:"",skills:[sl("calculator","Restructuring",R0),sl("boat","Kayaking",R1)]},
     ]},
     {id:"b6",label:"Construction\n& Energy",members:[
-      {id:"m18",name:"James Dean",     ox:200,oy:-32,skills:[sl("hardhat","Procurement",R0),sl("saw","Woodworking",R1)]},
-      {id:"m19",name:"Sarah Connor",   ox:200,oy: 32,skills:[sl("leaf","Renewables",R0),sl("paintbrush","Painting",R1)]},
+      {id:"m18",name:"James Dean",     ox:200,oy:-32,position:"",skills:[sl("hardhat","Procurement",R0),sl("saw","Woodworking",R1)]},
+      {id:"m19",name:"Sarah Connor",   ox:200,oy: 32,position:"",skills:[sl("leaf","Renewables",R0),sl("paintbrush","Painting",R1)]},
     ]},
     {id:"b7",label:"Private Client",members:[
-      {id:"m20",name:"Tom Marks",      ox:200,oy:-55,skills:[sl("scroll","Estate Planning",R0),sl("tennis","Tennis",R1)]},
-      {id:"m21",name:"Helen Kerr",     ox:200,oy:  0,skills:[sl("coin","Taxation",R0),sl("microphone","Singing",R1)]},
-      {id:"m22",name:"Liam Mason",     ox:200,oy: 55,skills:[sl("family","Probate",R0),sl("telescope","Astronomy",R1)]},
+      {id:"m20",name:"Tom Marks",      ox:200,oy:-55,position:"",skills:[sl("scroll","Estate Planning",R0),sl("tennis","Tennis",R1)]},
+      {id:"m21",name:"Helen Kerr",     ox:200,oy:  0,position:"",skills:[sl("coin","Taxation",R0),sl("microphone","Singing",R1)]},
+      {id:"m22",name:"Liam Mason",     ox:200,oy: 55,position:"",skills:[sl("family","Probate",R0),sl("telescope","Astronomy",R1)]},
     ]},
   ];
 }
@@ -521,6 +540,7 @@ function MindMap(){
     setBranches(bs=>bs.map(b=>b.id!==bId?b:{...b,
       members:b.members.map(m=>m.id!==mId?m:{...m,
         ...(field==="name"?{name:value}:{}),
+        ...(field==="position"?{position:value}:{}),
         ...(field==="skill"?{skills:m.skills.map((s,i)=>i===si?{...s,label:value}:s)}:{}),
         ...(field==="icon" ?{skills:m.skills.map((s,i)=>i===si?{...s,icon:value}:s)} :{}),
       })}));
@@ -534,7 +554,7 @@ function MindMap(){
   const addMember=useCallback((bId,side)=>{
     const dir=side==="left"?-1:1,baseOx=dir*((SW+MW)/2+14);
     setBranches(bs=>bs.map(b=>b.id!==bId?b:{...b,members:[...b.members,{
-      id:"m_"+Date.now(),name:"New Member",
+      id:"m_"+Date.now(),name:"New Member",position:"",
       ox:dir*200,oy:b.members.length*55-((b.members.length*55)/2),
       skills:[
         {icon:"pen",   label:"Specialisation",ox:baseOx,oy:-16},
