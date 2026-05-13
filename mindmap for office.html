@@ -329,12 +329,12 @@ function MemberNode({member,bx,by,branchId,onCommitMove,onCommitSkillMove,onUpda
             onClick={e=>{e.stopPropagation();onRemove(branchId,member.id);}}>×</text>
         )}
       </g>
-      {/* Position/title — sits just above the name box. Smaller and dimmer
+      {/* Position/title — sits just below the name box. Smaller and dimmer
           than the name. Double-click to add or change. Hidden in print mode
           when empty so exports don't show the placeholder. */}
       <EditText value={member.position||""}
         placeholder={printMode?"":"position"}
-        x={mx-memberW/2} y={my-MH/2-16} w={memberW} h={14} fs={10}
+        x={mx-memberW/2} y={my+MH/2+2} w={memberW} h={14} fs={10}
         fill={T.textAccent} italic
         onChange={v=>onUpdate(branchId,member.id,"position",v)}/>
     </g>
@@ -816,7 +816,7 @@ function MindMap(){
               printMode (the HTML input above is the editing surface in that case),
               but always visible in exports because the cloned SVG drops the HTML overlay. */}
           {printMode&&heading&&(
-            <text x={CX} y={CY-220} textAnchor="middle"
+            <text x={CX} y={60} textAnchor="middle"
               style={{fontFamily:"'Caveat',cursive",fontSize:42,fontWeight:700,fill:T.textAccent}}>
               {heading}
             </text>
