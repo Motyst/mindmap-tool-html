@@ -567,6 +567,33 @@ function MindMap(){
   },[]);
   const toggleCollapse=useCallback((id)=>setCollapsed(c=>({...c,[id]:!c[id]})),[]);
 
+  // Topmost Y of any rendered element (branches, members, skills, centre circles),
+  // EXCLUDING the heading itself — used to anchor the export heading just above
+  // whatever element is highest on the canvas. Skips members/skills of collapsed
+  // branches since they aren't rendered. Coordinates are in the inner <g>'s
+  // space, the same space the heading <text> uses.
+  const getTopmostElementY=useCallback(()=>{
+    let top=Infinity;
+    branches.forEach(b=>{
+      const pos=positions[b.id];
+      if(!pos)return;
+      top=Math.min(top,pos.y-BH/2);            // branch box top
+      if(collapsed[b.id])return;
+      b.members.forEach(m=>{
+        const my=pos.y+m.oy;
+        top=Math.min(top,my-MH/2);             // member box top
+        m.skills.forEach(s=>{
+          if(s.oy===undefined)return;
+          top=Math.min(top,my+s.oy-SH/2);      // skill/hobby box top
+        });
+      });
+    });
+    center.forEach(c=>{
+      top=Math.min(top,CY+c.dy-CR);            // centre circle top
+    });
+    return top===Infinity?CY:top;
+  },[branches,positions,collapsed,center]);
+
   const getContentBounds=useCallback(()=>{
     const innerG=svgRef.current&&svgRef.current.querySelector("g");
     if(innerG){try{const bb=innerG.getBBox(),pad=60;
@@ -812,15 +839,22 @@ function MindMap(){
             <CentreCircle key={c.id} c={c} onUpdate={updateCenter} T={T}/>
           ))}
           {/* Heading rendered inside the inner <g> so it's included in PNG/SVG exports.
-              Positioned roughly above the centre cluster. Hidden visually when not in
-              printMode (the HTML input above is the editing surface in that case),
-              but always visible in exports because the cloned SVG drops the HTML overlay. */}
-          {printMode&&heading&&(
-            <text x={CX} y={60} textAnchor="middle"
-              style={{fontFamily:"'Caveat',cursive",fontSize:42,fontWeight:700,fill:T.textAccent}}>
-              {heading}
-            </text>
-          )}
+              Position is dynamic: sits a fixed GAP above whatever element is highest
+              on the canvas (branch, member, skill, hobby, or centre circle). The
+              export's bounding box is computed AFTER this <text> renders, so the
+              export viewport naturally expands upward to include the heading
+              wherever it lands. Hidden visually when not in printMode (the HTML
+              input above is the editing surface in that case). */}
+          {printMode&&heading&&(()=>{
+            const GAP=30;  // SVG units between heading baseline and topmost element
+            const headingY=getTopmostElementY()-GAP;
+            return(
+              <text x={CX} y={headingY} textAnchor="middle"
+                style={{fontFamily:"'Caveat',cursive",fontSize:42,fontWeight:700,fill:T.textAccent}}>
+                {heading}
+              </text>
+            );
+          })()}
         </g>
       </svg>
     </div>
